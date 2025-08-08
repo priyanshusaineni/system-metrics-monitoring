@@ -1,0 +1,37 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+spec:
+  clusterIP: None
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+      name: postgres
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-writer
+spec:
+  selector:
+    role: writer
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-reader
+spec:
+  selector:
+    role: reader
+  ports:
+    - port: 5432
+      targetPort: 5432

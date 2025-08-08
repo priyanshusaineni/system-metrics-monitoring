@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>System Metrics Dashboard</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; background: #f7f7f7; }
+    h2 { border-bottom: 2px solid #ccc; padding-bottom: 5px; margin-top: 40px; }
+    .section { margin-bottom: 30px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+    pre { background: #f0f0f0; padding: 10px; border-radius: 5px; overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { text-align: left; padding: 8px; border-bottom: 1px solid #ddd; }
+    th { background-color: #f2f2f2; }
+  </style>
+</head>
+<body>
+
+  <h1>📊 System Metrics Dashboard</h1>
+
+  <div class="section" id="os-info">
+    <h2>OS Information</h2>
+    <pre id="osData">Loading...</pre>
+  </div>
+
+  <div class="section" id="uptime">
+    <h2>System Uptime</h2>
+    <pre id="uptimeData">Loading...</pre>
+  </div>
+
+  <div class="section" id="cpu-info">
+    <h2>CPU Information</h2>
+    <pre id="cpuData">Loading...</pre>
+  </div>
+
+  <div class="section" id="memory-info">
+    <h2>Memory Information</h2>
+    <pre id="memoryData">Loading...</pre>
+  </div>
+
+  <div class="section" id="disk-info">
+    <h2>Disk Usage</h2>
+    <pre id="diskData">Loading...</pre>
+  </div>
+
+  <div class="section" id="network-info">
+    <h2>Network Usage</h2>
+    <pre id="networkData">Loading...</pre>
+  </div>
+
+  <div class="section" id="load-average">
+    <h2>Load Average</h2>
+    <pre id="loadAvgData">Loading...</pre>
+  </div>
+
+  <div class="section" id="top-processes">
+    <h2>Top 5 Processes (by CPU)</h2>
+    <table id="processTable">
+      <thead>
+        <tr>
+          <th>PID</th>
+          <th>Name</th>
+          <th>CPU %</th>
+          <th>Memory %</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td colspan="4">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+<script>
+fetch('http://localhost:5000/metrics')
+  .then(res => res.json())
+  .then(data => {
+    document.getElementById("cpuData").textContent = JSON.stringify(data.cpu_info, null, 2);
+    // Repeat for all sections
+  })
+  .catch(err => console.error("API fetch error:", err));
+</script>
+
+</body>
+</html>

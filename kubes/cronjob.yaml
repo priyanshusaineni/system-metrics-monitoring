@@ -1,0 +1,20 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: metrics-push-cron
+spec:
+  schedule: "*/5 * * * *"  
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: metrics-pusher
+              image: curlimages/curl:latest
+              args:
+                - /bin/sh
+                - -c
+                - |
+                  curl -X POST http://backend-service:5000/store \
+                    -H "Content-Type: application/json"
+          restartPolicy: OnFailure
