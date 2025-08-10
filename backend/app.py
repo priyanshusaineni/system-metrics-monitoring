@@ -15,6 +15,54 @@ DB_PORT = os.getenv("DB_PORT", "5432")
 DB_USER = os.getenv("POSTGRES_USER", "postgres")
 DB_PASSWORD = os.getenv("POSTGRES_PASSWORD", "postgres")
 
+HTML_TEMPLATE ="""
+<!DOCTYPE html>
+<html>
+<head>
+    <title>System Metrics</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { border-collapse: collapse; width: 60%; margin-bottom: 30px; }
+        th, td { border: 1px solid #ddd; padding: 8px; }
+        th { background-color: #f2f2f2; }
+        h2 { margin-top: 40px; }
+    </style>
+</head>
+<body>
+    <h1>System Metrics</h1>
+
+    {% for section, data in metrics.items() %}
+        <h2>{{ section | capitalize }} Metrics</h2>
+        <table>
+            <tr>
+                <th>Metric</th>
+                <th>Value</th>
+            </tr>
+            {% if section == "network" %}
+                {% for interface, values in data.items() %}
+                    <tr>
+                        <td colspan="2" style="background:#ddd;"><b>Interface: {{ interface }}</b></td>
+                    </tr>
+                    {% for key, value in values.items() %}
+                        <tr>
+                            <td>{{ key }}</td>
+                            <td>{{ value }}</td>
+                        </tr>
+                    {% endfor %}
+                {% endfor %}
+            {% else %}
+                {% for key, value in data.items() %}
+                    <tr>
+                        <td>{{ key }}</td>
+                        <td>{{ value }}</td>
+                    </tr>
+                {% endfor %}
+            {% endif %}
+        </table>
+    {% endfor %}
+</body>
+</html>
+"""
 
 def get_db_connection():
     print(DB_PASSWORD)
@@ -26,7 +74,7 @@ def get_db_connection():
         user=DB_USER,
         password=DB_PASSWORD
     )
-    
+
 @app.route('/metrics')
 def metrics():
     conn = get_db_connection()
@@ -118,7 +166,8 @@ def metrics():
     cursor.close()
     conn.close()
 
-    return jsonify(result)
+    # return jsonify(result)
+    return render_template("metrics.html", metrics=result)
 
 
 @app.route('/store', methods=['POST'])
