@@ -26,7 +26,7 @@ def get_db_connection():
         user=DB_USER,
         password=DB_PASSWORD
     )
-
+    
 @app.route('/metrics')
 def metrics():
     conn = get_db_connection()
@@ -35,19 +35,21 @@ def metrics():
     result = {}
 
     # CPU Metrics
-    cursor.execute("SELECT * FROM cpu_metrics ORDER BY timestamp DESC LIMIT 1")
+    cursor.execute("SELECT timestamp, total_cores, physical_cores, total_cpu_usage FROM cpu_metrics ORDER BY timestamp DESC LIMIT 1")
     row = cursor.fetchone()
     if row:
         result["cpu"] = {
             "timestamp": row[0],
             "Total Cores": row[1],
             "Physical Cores": row[2],
-            "Total CPU Usage (%)": row[3],
-            "Load Average (1m,5m,15m)": row[4],
+            "Total CPU Usage (%)": row[3]
         }
 
     # Memory Metrics
-    cursor.execute("SELECT * FROM memory_metrics ORDER BY timestamp DESC LIMIT 1")
+    cursor.execute("""
+        SELECT timestamp, total_ram_mb, used_ram_mb, free_ram_mb, ram_usage, swap_total_mb, swap_used_mb, swap_usage
+        FROM memory_metrics ORDER BY timestamp DESC LIMIT 1
+    """)
     row = cursor.fetchone()
     if row:
         result["memory"] = {
@@ -58,11 +60,14 @@ def metrics():
             "RAM Usage (%)": row[4],
             "Swap Total (MB)": row[5],
             "Swap Used (MB)": row[6],
-            "Swap Usage (%)": row[7],
+            "Swap Usage (%)": row[7]
         }
 
     # Disk Metrics
-    cursor.execute("SELECT * FROM disk_metrics ORDER BY timestamp DESC LIMIT 1")
+    cursor.execute("""
+        SELECT timestamp, total_gb, used_gb, free_gb, percent_used
+        FROM disk_metrics ORDER BY timestamp DESC LIMIT 1
+    """)
     row = cursor.fetchone()
     if row:
         result["disk"] = {
@@ -70,49 +75,44 @@ def metrics():
             "total_disk_space_gb": row[1],
             "used_disk_space_gb": row[2],
             "free_disk_space_gb": row[3],
-            "percent_used": row[4],
+            "percent_used": row[4]
         }
 
-    # Network Metrics
-    cursor.execute("SELECT * FROM network_metrics ORDER BY timestamp DESC LIMIT 1")
-    row = cursor.fetchone()
-    if row:
-        result["network"] = {
+    # Network Metrics (get latest per interface)
+    cursor.execute("""
+        SELECT timestamp, interface, bytes_sent, bytes_recv, packets_sent, packets_recv, errin, errout, dropin, dropout
+        FROM network_metrics ORDER BY timestamp DESC LIMIT 5
+    """)
+    rows = cursor.fetchall()
+    network_data = {}
+    for row in rows:
+        network_data[row[1]] = {
             "timestamp": row[0],
-            "bytes_sent": row[1],
-            "bytes_recv": row[2],
-            "packets_sent": row[3],
-            "packets_recv": row[4],
-            "errin": row[5],
-            "errout": row[6],
-            "dropin": row[7],
-            "dropout": row[8],
+            "bytes_sent": row[2],
+            "bytes_recv": row[3],
+            "packets_sent": row[4],
+            "packets_recv": row[5],
+            "errin": row[6],
+            "errout": row[7],
+            "dropin": row[8],
+            "dropout": row[9]
         }
-
-    # Process Metrics
-    cursor.execute("SELECT * FROM process_metrics ORDER BY timestamp DESC LIMIT 1")
-    row = cursor.fetchone()
-    if row:
-        result["process"] = {
-            "timestamp": row[0],
-            "Total Processes": row[1],
-            "Zombie Processes": row[2],
-            "Top 5 Processes (by CPU)": row[3],
-        }
+    if network_data:
+        result["network"] = network_data
 
     # System Info
-    cursor.execute("SELECT * FROM system_info ORDER BY timestamp DESC LIMIT 1")
+    cursor.execute("""
+        SELECT timestamp, os, hostname, architecture, uptime_sec
+        FROM system_info ORDER BY timestamp DESC LIMIT 1
+    """)
     row = cursor.fetchone()
     if row:
         result["system"] = {
             "timestamp": row[0],
             "OS": row[1],
-            "OS Version": row[2],
-            "Hostname": row[3],
-            "IP Address": row[4],
-            "Architecture": row[5],
-            "Uptime (sec)": row[6],
-            "Logged In Users": row[7],
+            "Hostname": row[2],
+            "Architecture": row[3],
+            "Uptime (sec)": row[4]
         }
 
     cursor.close()
@@ -120,123 +120,117 @@ def metrics():
 
     return jsonify(result)
 
+
 @app.route('/store', methods=['POST'])
 def store_metrics():
     conn = get_db_connection()
     cursor = conn.cursor()
 
     timestamp = get_timestamp()
-    
-    # CPU Metrics
+
+    # ---------------- CPU Metrics ----------------
     cpu = get_cpu_metrics()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS cpu_metrics (
-            timestamp TEXT,
+            id SERIAL PRIMARY KEY,
+            timestamp TIMESTAMP,
             total_cores INT,
             physical_cores INT,
             total_cpu_usage FLOAT,
-            load_avg TEXT
         )
     """)
     cursor.execute("""
-        INSERT INTO cpu_metrics (timestamp, total_cores, physical_cores, total_cpu_usage, load_avg)
-        VALUES (%s, %s, %s, %s, %s)
-    """, (timestamp, cpu["Total Cores"], cpu["Physical Cores"], cpu["Total CPU Usage (%)"], str(cpu["Load Average (1m,5m,15m)"])))
+        INSERT INTO cpu_metrics (timestamp, total_cores, physical_cores, total_cpu_usage)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+    """, (timestamp, cpu.get("Total Cores"), cpu.get("Physical Cores"),
+          cpu.get("Total CPU Usage (%)")))
 
-    # Memory Metrics
+    # ---------------- Memory Metrics ----------------
     memory = get_memory_metrics()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS memory_metrics (
-            timestamp TEXT,
-            total_ram_mb INT,
-            used_ram_mb INT,
-            free_ram_mb INT,
+            id SERIAL PRIMARY KEY,
+            timestamp TIMESTAMP,
+            total_ram_mb BIGINT,
+            used_ram_mb BIGINT,
+            free_ram_mb BIGINT,
             ram_usage FLOAT,
-            swap_total_mb INT,
-            swap_used_mb INT,
+            swap_total_mb BIGINT,
+            swap_used_mb BIGINT,
             swap_usage FLOAT
         )
     """)
     cursor.execute("""
         INSERT INTO memory_metrics (timestamp, total_ram_mb, used_ram_mb, free_ram_mb, ram_usage, swap_total_mb, swap_used_mb, swap_usage)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    """, (timestamp, memory["Total RAM (MB)"], memory["Used RAM (MB)"], memory["Free RAM (MB)"], memory["RAM Usage (%)"],
-          memory["Swap Total (MB)"], memory["Swap Used (MB)"], memory["Swap Usage (%)"]))
+    """, (timestamp, memory.get("Total RAM (MB)"), memory.get("Used RAM (MB)"),
+          memory.get("Free RAM (MB)"), memory.get("RAM Usage (%)"),
+          memory.get("Swap Total (MB)"), memory.get("Swap Used (MB)"), memory.get("Swap Usage (%)")))
 
-    # Disk Metrics
+    # ---------------- Disk Metrics ----------------
     disk = get_disk_metrics()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS disk_metrics (
-            timestamp TEXT,
+            id SERIAL PRIMARY KEY,
+            timestamp TIMESTAMP,
             total_gb FLOAT,
             used_gb FLOAT,
             free_gb FLOAT,
-            percent_used TEXT
+            percent_used FLOAT
         )
     """)
     cursor.execute("""
         INSERT INTO disk_metrics (timestamp, total_gb, used_gb, free_gb, percent_used)
         VALUES (%s, %s, %s, %s, %s)
-    """, (timestamp, disk["total_disk_space_gb"], disk["used_disk_space_gb"],
-          disk["free_disk_space_gb"], disk["percent_used"]))
+    """, (timestamp, disk.get("total_disk_space_gb"), disk.get("used_disk_space_gb"),
+          disk.get("free_disk_space_gb"), disk.get("percent_used")))
 
-    # Network Metrics
+    # ---------------- Network Metrics ----------------
     network = get_network_metrics()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS network_metrics (
-            timestamp TEXT,
+            id SERIAL PRIMARY KEY,
+            timestamp TIMESTAMP,
+            interface TEXT,
             bytes_sent BIGINT,
             bytes_recv BIGINT,
             packets_sent BIGINT,
             packets_recv BIGINT,
-            errin INT,
-            errout INT,
-            dropin INT,
-            dropout INT
+            errin BIGINT,
+            errout BIGINT,
+            dropin BIGINT,
+            dropout BIGINT
         )
     """)
-    cursor.execute("""
-        INSERT INTO network_metrics (timestamp, bytes_sent, bytes_recv, packets_sent, packets_recv, errin, errout, dropin, dropout)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
-    """, (timestamp, network["bytes_sent"], network["bytes_recv"], network["packets_sent"],
-          network["packets_recv"], network["errin"], network["errout"], network["dropin"], network["dropout"]))
+    for iface, stats in network.items():
+        if iface == "error":
+            continue
+        cursor.execute("""
+            INSERT INTO network_metrics (timestamp, interface, bytes_sent, bytes_recv, packets_sent, packets_recv, errin, errout, dropin, dropout)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (timestamp, iface, stats["bytes_sent"], stats["bytes_recv"],
+              stats["packets_sent"], stats["packets_recv"],
+              stats["errin"], stats["errout"], stats["dropin"], stats["dropout"]))
 
-    # Process Metrics
-    process = get_process_metrics()
-    top_procs = str(process["Top 5 Processes (by CPU)"])
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS process_metrics (
-            timestamp TEXT,
-            total_processes INT,
-            zombie_processes INT,
-            top_processes TEXT
-        )
-    """)
-    cursor.execute("""
-        INSERT INTO process_metrics (timestamp, total_processes, zombie_processes, top_processes)
-        VALUES (%s, %s, %s, %s)
-    """, (timestamp, process["Total Processes"], process["Zombie Processes"], top_procs))
-
-    # System Info
+    # ---------------- System Info ----------------
     system = get_system_info()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS system_info (
-            timestamp TEXT,
+            id SERIAL PRIMARY KEY,
+            timestamp TIMESTAMP,
             os TEXT,
-            version TEXT,
             hostname TEXT,
-            ip TEXT,
             architecture TEXT,
-            uptime_sec INT,
-            logged_in_users INT
+            uptime_sec BIGINT
         )
     """)
     cursor.execute("""
-        INSERT INTO system_info (timestamp, os, version, hostname, ip, architecture, uptime_sec, logged_in_users)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-    """, (timestamp, system["OS"], system["OS Version"], system["Hostname"], system["IP Address"],
-          system["Architecture"], system["Uptime (sec)"], system["Logged In Users"]))
+        INSERT INTO system_info (timestamp, os, hostname, architecture, uptime_sec)
+        VALUES (%s, %s, %s, %s, %s)
+    """, (timestamp, system.get("OS"), system.get("Hostname"),
+          system.get("Architecture"), system.get("Uptime (sec)")))
 
+    # Commit changes
     conn.commit()
     cursor.close()
     conn.close()
