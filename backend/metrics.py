@@ -75,14 +75,15 @@ def get_disk_metrics():
             mount_point = parts[1]
 
             try:
-                stats = os.statvfs(mount_point)
-                mount_total = stats.f_blocks * stats.f_frsize
-                mount_free = stats.f_bfree * stats.f_frsize
-                mount_used = mount_total - mount_free
+                if mountpoint == "/":
+                    stats = os.statvfs(mount_point)
+                    mount_total = stats.f_blocks * stats.f_frsize
+                    mount_free = stats.f_bfree * stats.f_frsize
+                    mount_used = mount_total - mount_free
 
-                total += mount_total
-                used += mount_used
-                free += mount_free
+                    total += mount_total
+                    used += mount_used
+                    free += mount_free
             except OSError:
                 continue  # Ignore inaccessible mounts
 
@@ -154,3 +155,28 @@ def get_system_info():
 
     return info
     
+def main():
+    print(f"System Metrics Collected at: {get_timestamp()}")
+    metrics = {}
+
+    # Collect system info
+    metrics["system_info"] = get_system_info()
+
+    # CPU metrics
+    metrics["cpu_metrics"] = get_cpu_metrics()
+
+    # Memory metrics
+    metrics["memory_metrics"] = get_memory_metrics()
+
+    # Disk metrics
+    metrics["disk_metrics"] = get_disk_metrics()
+
+    # Network metrics
+    metrics["network_metrics"] = get_network_metrics()
+
+    # Print as pretty JSON
+    print(json.dumps(metrics, indent=4))
+
+
+if __name__ == "__main__":
+    main()
