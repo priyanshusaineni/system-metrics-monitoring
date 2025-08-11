@@ -1,5 +1,7 @@
-from flask import Flask, jsonify
-from metrics import get_cpu_metrics, get_memory_metrics, get_disk_metrics, get_network_metrics, get_process_metrics, get_system_info, get_timestamp
+# from flask import Flask, jsonify
+from flask import Flask, render_template_string, jsonify
+
+from metrics import get_cpu_metrics, get_memory_metrics, get_disk_metrics, get_network_metrics, get_system_info, get_timestamp
 import psycopg2
 import os
 import threading
@@ -167,7 +169,7 @@ def metrics():
     conn.close()
 
     # return jsonify(result)
-    return render_template("metrics.html", metrics=result)
+    return render_template_string(HTML_TEMPLATE, metrics=result)
 
 
 @app.route('/store', methods=['POST'])
@@ -185,12 +187,12 @@ def store_metrics():
             timestamp TIMESTAMP,
             total_cores INT,
             physical_cores INT,
-            total_cpu_usage FLOAT,
+            total_cpu_usage FLOAT
         )
     """)
     cursor.execute("""
         INSERT INTO cpu_metrics (timestamp, total_cores, physical_cores, total_cpu_usage)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s)
     """, (timestamp, cpu.get("Total Cores"), cpu.get("Physical Cores"),
           cpu.get("Total CPU Usage (%)")))
 
@@ -225,7 +227,7 @@ def store_metrics():
             total_gb FLOAT,
             used_gb FLOAT,
             free_gb FLOAT,
-            percent_used FLOAT
+            percent_used TEXT
         )
     """)
     cursor.execute("""

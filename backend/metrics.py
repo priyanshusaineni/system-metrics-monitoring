@@ -75,7 +75,7 @@ def get_disk_metrics():
             mount_point = parts[1]
 
             try:
-                if mountpoint == "/":
+                if mount_point == "/":
                     stats = os.statvfs(mount_point)
                     mount_total = stats.f_blocks * stats.f_frsize
                     mount_free = stats.f_bfree * stats.f_frsize
