@@ -32,7 +32,7 @@ pipeline {
                     sudo kubectl create secret generic postgres-db-secrets \
                       --from-literal=POSTGRES_USER=$POSTGRES_USER \
                       --from-literal=POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
-                      --dry-run=client -o yaml | sudo kubectl apply -f -
+                      --dry-run=client -o yaml | sudo kubectl apply --validate=false -f -
 
                     # Apply all manifests
                     sudo kubectl apply -f kubes/
