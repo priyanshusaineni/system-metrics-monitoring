@@ -19,7 +19,6 @@ pipeline {
                 }
             }
         }
-
         stage('Deploy to Kubernetes') {
             environment {
                 POSTGRES_USER = credentials('postgres-user')         
