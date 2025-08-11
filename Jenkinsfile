@@ -29,15 +29,21 @@ pipeline {
                 withCredentials([file(credentialsId: 'kube-config-file', variable: 'KUBECONFIG')]) {
                     sh '''                    
                     # Create DB secret
-                    sudo kubectl create secret generic postgres-db-secrets \
+                    // sudo kubectl create secret generic postgres-db-secrets \
+                    //   --from-literal=POSTGRES_USER=$POSTGRES_USER \
+                    //   --from-literal=POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+                    //   --dry-run=client -o yaml  > secrets.yaml
+                    
+                    // sudo kubectl apply -f secrets.yaml
+
+                    kubectl create secret generic postgres-db-secrets \
                       --from-literal=POSTGRES_USER=$POSTGRES_USER \
                       --from-literal=POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
-                      --dry-run=client -o yaml  > secrets.yaml
-                    
-                    sudo kubectl apply -f secrets.yaml
+                      --dry-run=client -o yaml | kubectl apply -f secrets.yaml
+                    // # Apply all manifests
+                    kubectl apply -f kubes/
 
-                    # Apply all manifests
-                    sudo kubectl apply -f kubes/
+
                     '''
                 }
             }
