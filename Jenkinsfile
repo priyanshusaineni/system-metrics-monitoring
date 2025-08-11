@@ -28,13 +28,22 @@ pipeline {
             steps {
                 withCredentials([file(credentialsId: 'kube-config-file', variable: 'KUBECONFIG')]) {
                     sh '''                    
-                    # Create DB secret
-                    sudo kubectl create secret generic postgres-db-secrets \
-                      --from-literal=POSTGRES_USER=$POSTGRES_USER \
-                      --from-literal=POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
-                      --dry-run=client -o yaml  > secrets.yaml
 
-                    sudo kubectl apply -f secrets.yaml
+
+                    #Check the minikube status and 
+                        #execute command minikube start if it is not running 
+
+                    # Is this executing outside the minikube 
+                    # Create DB secret
+
+                    
+                    kubectl --kubeconfig=$KUBECONFIG create secret generic postgres-db-secrets \
+      --from-literal=POSTGRES_USER=$POSTGRES_USER \
+      --from-literal=POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+      --dry-run=client -o yaml > secrets.yaml
+
+    kubectl --kubeconfig=$KUBECONFIG apply -f secrets.yaml
+    kubectl --kubeconfig=$KUBECONFIG apply -f kubes/
 
                     // # Apply all manifests
                     kubectl apply -f kubes/
