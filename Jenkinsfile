@@ -4,7 +4,7 @@ pipeline {
     environment {
         DOCKER_HUB_USERNAME = 'priyanshu0811'
         IMAGE = "${DOCKER_HUB_USERNAME}/backend11:latest"
-        // KUBE_CONFIG = credentials('kube-credentials-id')
+        KUBE_CONFIG = credentials('kube-credentials-id')
     }
 
     stages {
