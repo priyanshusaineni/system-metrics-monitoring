@@ -12,6 +12,7 @@ pipeline {
         stage('Build and Push Images to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'DOCKERHUB_CRED', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh 'cd backend'
                     sh 'docker build -t $IMAGE -f backend/Dockerfile .'                
                     sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
                     sh 'docker push $IMAGE'
