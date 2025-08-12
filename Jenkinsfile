@@ -28,7 +28,7 @@ pipeline {
                 withCredentials([file(credentialsId: 'kube-config-file', variable: 'KUBECONFIG')]) {
                     sh '''                    
 
-
+                        whoami
                     #Check the minikube status and 
                         #execute command minikube start if it is not running 
 
