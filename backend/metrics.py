@@ -11,7 +11,7 @@ def get_timestamp():
 
 def get_cpu_metrics():
     cpu_metrics = {}
-
+ 
     # Read CPU core count from mounted /proc/cpuinfo
     try:
         cpuinfo_path = "/host/proc/cpuinfo"
