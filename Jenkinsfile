@@ -24,7 +24,6 @@ pipeline {
                 POSTGRES_USER = credentials('postgres-user')         
                 POSTGRES_PASSWORD = credentials('postgres-password') 
             }
-
             steps {
                 withCredentials([file(credentialsId: 'kube-config-file', variable: 'KUBECONFIG')]) {
                     sh '''                    
@@ -38,10 +37,10 @@ pipeline {
                     kubectl create secret generic postgres-db-secrets \
                       --from-literal=POSTGRES_USER=$POSTGRES_USER \
                       --from-literal=POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
-                      --dry-run=client -o yaml  | kubectl apply -f secrets.yaml
+                      --dry-run=client -o yaml  | kubectl apply -f - --validate=false
 
                     // # Apply all manifests
-                    kubectl apply -f kubes/
+                    kubectl apply -f kubes/ --validate=false
 
 
                     '''
