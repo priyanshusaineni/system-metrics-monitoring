@@ -84,91 +84,88 @@ def metrics():
 
     result = {}
 
+    def fetch_latest(query, keys):
+        try:
+            cursor.execute(query)
+            row = cursor.fetchone()
+            if row:
+                return dict(zip(keys, row))
+        except Exception as e:
+            # Table might not exist
+            return None
+        return None
+
     # CPU Metrics
-    cursor.execute("SELECT timestamp, total_cores, physical_cores, total_cpu_usage FROM cpu_metrics ORDER BY timestamp DESC LIMIT 1")
-    row = cursor.fetchone()
-    if row:
-        result["cpu"] = {
-            "timestamp": row[0],
-            "Total Cores": row[1],
-            "Physical Cores": row[2],
-            "Total CPU Usage (%)": row[3]
-        }
+    cpu = fetch_latest(
+        "SELECT timestamp, total_cores, physical_cores, total_cpu_usage FROM cpu_metrics ORDER BY timestamp DESC LIMIT 1",
+        ["timestamp", "Total Cores", "Physical Cores", "Total CPU Usage (%)"]
+    )
+    if cpu:
+        result["cpu"] = cpu
 
     # Memory Metrics
-    cursor.execute("""
+    memory = fetch_latest("""
         SELECT timestamp, total_ram_mb, used_ram_mb, free_ram_mb, ram_usage, swap_total_mb, swap_used_mb, swap_usage
         FROM memory_metrics ORDER BY timestamp DESC LIMIT 1
-    """)
-    row = cursor.fetchone()
-    if row:
-        result["memory"] = {
-            "timestamp": row[0],
-            "Total RAM (MB)": row[1],
-            "Used RAM (MB)": row[2],
-            "Free RAM (MB)": row[3],
-            "RAM Usage (%)": row[4],
-            "Swap Total (MB)": row[5],
-            "Swap Used (MB)": row[6],
-            "Swap Usage (%)": row[7]
-        }
+    """, [
+        "timestamp", "Total RAM (MB)", "Used RAM (MB)", "Free RAM (MB)",
+        "RAM Usage (%)", "Swap Total (MB)", "Swap Used (MB)", "Swap Usage (%)"
+    ])
+    if memory:
+        result["memory"] = memory
 
     # Disk Metrics
-    cursor.execute("""
+    disk = fetch_latest("""
         SELECT timestamp, total_gb, used_gb, free_gb, percent_used
         FROM disk_metrics ORDER BY timestamp DESC LIMIT 1
-    """)
-    row = cursor.fetchone()
-    if row:
-        result["disk"] = {
-            "timestamp": row[0],
-            "total_disk_space_gb": row[1],
-            "used_disk_space_gb": row[2],
-            "free_disk_space_gb": row[3],
-            "percent_used": row[4]
-        }
+    """, [
+        "timestamp", "total_disk_space_gb", "used_disk_space_gb",
+        "free_disk_space_gb", "percent_used"
+    ])
+    if disk:
+        result["disk"] = disk
 
-    # Network Metrics (get latest per interface)
-    cursor.execute("""
-        SELECT timestamp, interface, bytes_sent, bytes_recv, packets_sent, packets_recv, errin, errout, dropin, dropout
-        FROM network_metrics ORDER BY timestamp DESC LIMIT 5
-    """)
-    rows = cursor.fetchall()
-    network_data = {}
-    for row in rows:
-        network_data[row[1]] = {
-            "timestamp": row[0],
-            "bytes_sent": row[2],
-            "bytes_recv": row[3],
-            "packets_sent": row[4],
-            "packets_recv": row[5],
-            "errin": row[6],
-            "errout": row[7],
-            "dropin": row[8],
-            "dropout": row[9]
-        }
-    if network_data:
-        result["network"] = network_data
+    # Network Metrics
+    try:
+        cursor.execute("""
+            SELECT timestamp, interface, bytes_sent, bytes_recv, packets_sent, packets_recv, errin, errout, dropin, dropout
+            FROM network_metrics ORDER BY timestamp DESC LIMIT 5
+        """)
+        rows = cursor.fetchall()
+        network_data = {}
+        for row in rows:
+            network_data[row[1]] = {
+                "timestamp": row[0],
+                "bytes_sent": row[2],
+                "bytes_recv": row[3],
+                "packets_sent": row[4],
+                "packets_recv": row[5],
+                "errin": row[6],
+                "errout": row[7],
+                "dropin": row[8],
+                "dropout": row[9]
+            }
+        if network_data:
+            result["network"] = network_data
+    except Exception:
+        pass  # Ignore if table does not exist
 
     # System Info
-    cursor.execute("""
+    system = fetch_latest("""
         SELECT timestamp, os, hostname, architecture, uptime_sec
         FROM system_info ORDER BY timestamp DESC LIMIT 1
-    """)
-    row = cursor.fetchone()
-    if row:
-        result["system"] = {
-            "timestamp": row[0],
-            "OS": row[1],
-            "Hostname": row[2],
-            "Architecture": row[3],
-            "Uptime (sec)": row[4]
-        }
+    """, [
+        "timestamp", "OS", "Hostname", "Architecture", "Uptime (sec)"
+    ])
+    if system:
+        result["system"] = system
 
     cursor.close()
     conn.close()
 
-    # return jsonify(result)
+    if not result:
+        return jsonify({"message": "No resources found"}), 200
+
     return render_template_string(HTML_TEMPLATE, metrics=result)
 
 
