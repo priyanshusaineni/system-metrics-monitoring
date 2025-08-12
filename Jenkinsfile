@@ -25,7 +25,7 @@ pipeline {
                 POSTGRES_PASSWORD = credentials('postgres-password') 
             }
             steps {
-                withCredentials([file(credentialsId: 'kube-config-file', variable: 'KUBECONFIG')]) {
+                // withCredentials([file(credentialsId: 'kube-config-file', variable: 'KUBECONFIG')]) {
                     sh '''                    
 
                         whoami
@@ -44,7 +44,7 @@ pipeline {
 
 
                     '''
-                }
+                // }
             }
         }
     }
