@@ -36,10 +36,10 @@ pipeline {
                     kubectl create secret generic postgres-db-secrets \
                       --from-literal=POSTGRES_USER=$POSTGRES_USER \
                       --from-literal=POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
-                      --dry-run=client -o yaml --validate=false | kubectl apply -f - --validate=false
+                      --dry-run=client -o yaml | kubectl apply -f -
 
                     # Apply all manifests
-                    kubectl apply -f kubes/ --validate=false
+                    kubectl apply -f kubes/ 
                     kubectl rollout restart deployment backend 
 
                     '''
