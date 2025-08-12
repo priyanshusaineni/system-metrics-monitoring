@@ -43,7 +43,7 @@ HTML_TEMPLATE ="""
             {% if section == "network" %}
                 {% for interface, values in data.items() %}
                     <tr>
-                        <td colspan="2" style="background:#ddd;"><b>Interface: {{ interface }}</b></td>
+                        <td colspan="12 style="background:#ddd;"><b>Interface: {{ interface }}</b></td>
                     </tr>
                     {% for key, value in values.items() %}
                         <tr>
