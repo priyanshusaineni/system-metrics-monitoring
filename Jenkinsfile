@@ -41,7 +41,7 @@ pipeline {
 
                     # Apply all manifests
                     kubectl apply -f kubes/ --validate=false
-
+                    kubectl rollout restart deployment backend 
 
                     '''
                 // }
