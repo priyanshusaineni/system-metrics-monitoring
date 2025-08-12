@@ -38,7 +38,7 @@ HTML_TEMPLATE ="""
         <table>
             <tr>
                 <th>Metric</th>
-                <th>Value</th>
+                <th>Value---1</th>
             </tr>
             {% if section == "network" %}
                 {% for interface, values in data.items() %}
